@@ -54,19 +54,41 @@ export default function Dashboard({ user }) {
     }]
   };
 
+  // Monthly bar chart data
+  const monthlyData = transactions.reduce((acc, transaction) => {
+    const date = new Date(transaction.date);
+    const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+    
+    if (!acc[monthYear]) {
+      acc[monthYear] = { income: 0, expenses: 0 };
+    }
+    
+    if (transaction.type === 'income') {
+      acc[monthYear].income += transaction.amount;
+    } else {
+      acc[monthYear].expenses += transaction.amount;
+    }
+    
+    return acc;
+  }, {});
+
+  const sortedMonths = Object.keys(monthlyData).sort((a, b) => 
+    new Date(a) - new Date(b)
+  );
+
   // Bar Chart Data
   const barChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: sortedMonths,
     datasets: [
       {
         label: 'Income',
-        data: [65000, 59000, 80000, 81000, 56000, 55000],
+        data: sortedMonths.map(month => monthlyData[month].income),
         backgroundColor: '#4CAF50',
         borderRadius: 5
       },
       {
         label: 'Expenses',
-        data: [45000, 49000, 60000, 51000, 46000, 45000],
+        data: sortedMonths.map(month => monthlyData[month].expenses),
         backgroundColor: '#F44336',
         borderRadius: 5
       }
@@ -80,11 +102,27 @@ export default function Dashboard({ user }) {
         <h2 className="text-primary">Financial Overview</h2>
         <Button 
           variant="outline-primary" 
-          onClick={() => setShowPieChart(!showPieChart)}
+          onClick={() => setChartType(prev => 
+            prev === 'pie' ? 'bar' : prev === 'bar' ? null : 'pie'
+          )}
           className="rounded-pill"
         >
-          <PieChart className="me-2" />
-          {showPieChart ? 'Hide' : 'Show'} Breakdown
+          {chartType === 'pie' ? (
+            <>
+              <BarChart className="me-2" />
+              Show Bar Chart
+            </>
+          ) : chartType === 'bar' ? (
+            <>
+              <PieChart className="me-2" />
+              Hide Charts
+            </>
+          ) : (
+            <>
+              <PieChart className="me-2" />
+              Show Breakdown
+            </>
+          )}
         </Button>
       </div>
 
@@ -156,48 +194,48 @@ export default function Dashboard({ user }) {
         </Card.Body>
       </Card>
     
-    {/* Bar Chart */}
-    <Card className="mb-4 shadow animate__animated animate__fadeInUp">
-    <Card.Body>
-    <h5 className="mb-4 text-secondary">Monthly Comparison</h5>
-    <div className="bar-chart-container">
-      <Bar 
-        data={barChartData}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'top',
-            }
-            }
-        }}
-        />
-    </div>
-    </Card.Body>
-    </Card>
-
-      {/* Pie Chart */}
-      {showPieChart && (
+    {chartType && (
         <Card className="shadow animate__animated animate__fadeInUp">
           <Card.Body>
-            <h5 className="mb-4 text-secondary">Financial Breakdown</h5>
-            <div className="pie-container">
-              <Pie 
-                data={pieData}
-                options={{
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                      labels: {
-                        font: {
-                          size: 12
+            <h5 className="mb-4 text-secondary">
+              {chartType === 'pie' ? 'Financial Breakdown' : 'Monthly Comparison'}
+            </h5>
+            <div className={`${chartType}-container`}>
+              {chartType === 'pie' ? (
+                <Pie 
+                  data={pieData}
+                  options={{
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 12 } }
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <Bar 
+                  data={barChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { position: 'top' }
+                    },
+                    scales: {
+                      x: {
+                        grid: { display: false }
+                      },
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: value => `₹${value.toLocaleString()}`
                         }
                       }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              )}
             </div>
           </Card.Body>
         </Card>

@@ -350,3 +350,19 @@ body {
 .animate__animated {
   animation-duration: 0.8s;
 }
+
+.pie-container {
+  height: 250px;
+  width: 250px;
+  margin: 0 auto;
+}
+
+.bar-container {
+  height: 300px;
+  position: relative;
+}
+
+.chartjs-render-monitor {
+  max-height: 100% !important;
+  max-width: 100% !important;
+}
