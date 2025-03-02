@@ -47,7 +47,7 @@ export default function Expenses() {
 
       <Row className="g-4 mb-4">
         <Col md={8}>
-          <Card className="shadow">
+          <Card className="glass-card shadow">
             <Card.Body>
               <ExpenseList
                 expenses={expenseTransactions}

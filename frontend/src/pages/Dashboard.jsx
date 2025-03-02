@@ -2,26 +2,64 @@ import { useState, useEffect } from 'react';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
 import { Button, Card, Row, Col } from 'react-bootstrap';
-import { CurrencyRupee, ArrowUpCircle, ArrowDownCircle, PieChart } from 'react-bootstrap-icons';
+import { CurrencyRupee, ArrowUpCircle, ArrowDownCircle, PieChart as PieIcon, XCircle } from 'react-bootstrap-icons';
 
+// Register Chart.js components
 ChartJS.register(
-  CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement
+  CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
+  ArcElement, PointElement, LineElement
 );
 
-export default function Dashboard({ user }) {
-  const [showPieChart, setShowPieChart] = useState(false);
+const Dashboard = ({ user }) => {
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [transactions] = useState(
     JSON.parse(localStorage.getItem('transactions')) || []
   );
 
   // Calculate totals
-  const incomeData = transactions.filter(t => t.type === 'income');
-  const expenseData = transactions.filter(t => t.type === 'expense');
-  const totalIncome = incomeData.reduce((a, b) => a + b.amount, 0);
-  const totalExpenses = expenseData.reduce((a, b) => a + b.amount, 0);
-  const currentBalance = totalIncome - totalExpenses;
+  const income = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const expenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const balance = income - expenses;
 
-  // Line Chart Data
+  // Process data for charts
+  const processChartData = () => {
+    const monthlyData = {};
+    const categoryData = {};
+
+    transactions.forEach(transaction => {
+      // Monthly breakdown
+      const month = new Date(transaction.date)
+        .toLocaleString('default', { month: 'short' });
+      
+      if (!monthlyData[month]) {
+        monthlyData[month] = { income: 0, expense: 0 };
+      }
+
+      if (transaction.type === 'income') {
+        monthlyData[month].income += transaction.amount;
+      } else {
+        monthlyData[month].expense += transaction.amount;
+      }
+
+      // Category breakdown
+      if (transaction.type === 'expense') {
+        const category = transaction.category;
+        categoryData[category] = (categoryData[category] || 0) + transaction.amount;
+      }
+    });
+
+    return { monthlyData, categoryData };
+  };
+
+  const { monthlyData, categoryData } = processChartData();
+
+  // Chart configurations
   const lineChartData = {
     labels: transactions.map(t => new Date(t.date).toLocaleDateString()),
     datasets: [
@@ -44,202 +82,143 @@ export default function Dashboard({ user }) {
     ]
   };
 
-  // Pie Chart Data
-  const pieData = {
-    labels: ['Income', 'Expenses'],
-    datasets: [{
-      data: [totalIncome, totalExpenses],
-      backgroundColor: ['#4CAF50', '#F44336'],
-      hoverOffset: 10
-    }]
-  };
-
-  // Monthly bar chart data
-  const monthlyData = transactions.reduce((acc, transaction) => {
-    const date = new Date(transaction.date);
-    const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-    
-    if (!acc[monthYear]) {
-      acc[monthYear] = { income: 0, expenses: 0 };
-    }
-    
-    if (transaction.type === 'income') {
-      acc[monthYear].income += transaction.amount;
-    } else {
-      acc[monthYear].expenses += transaction.amount;
-    }
-    
-    return acc;
-  }, {});
-
-  const sortedMonths = Object.keys(monthlyData).sort((a, b) => 
-    new Date(a) - new Date(b)
-  );
-
-  // Bar Chart Data
   const barChartData = {
-    labels: sortedMonths,
+    labels: Object.keys(monthlyData),
     datasets: [
       {
         label: 'Income',
-        data: sortedMonths.map(month => monthlyData[month].income),
+        data: Object.values(monthlyData).map(m => m.income),
         backgroundColor: '#4CAF50',
         borderRadius: 5
       },
       {
         label: 'Expenses',
-        data: sortedMonths.map(month => monthlyData[month].expenses),
+        data: Object.values(monthlyData).map(m => m.expense),
         backgroundColor: '#F44336',
         borderRadius: 5
       }
     ]
   };
-  
+
+  const pieChartData = {
+    labels: Object.keys(categoryData),
+    datasets: [{
+      data: Object.values(categoryData),
+      backgroundColor: [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+        '#9966FF', '#FF9F40', '#E7E9ED'
+      ]
+    }]
+  };
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header mb-4">
-        <h2 className="text-primary">Financial Overview</h2>
-        <Button 
-          variant="outline-primary" 
-          onClick={() => setChartType(prev => 
-            prev === 'pie' ? 'bar' : prev === 'bar' ? null : 'pie'
-          )}
-          className="rounded-pill"
-        >
-          {chartType === 'pie' ? (
-            <>
-              <BarChart className="me-2" />
-              Show Bar Chart
-            </>
-          ) : chartType === 'bar' ? (
-            <>
-              <PieChart className="me-2" />
-              Hide Charts
-            </>
-          ) : (
-            <>
-              <PieChart className="me-2" />
-              Show Breakdown
-            </>
-          )}
-        </Button>
-      </div>
-
+      {/* Summary Cards */}
       <Row className="g-4 mb-4">
-        {/* Income Card */}
         <Col md={4}>
-          <Card className="h-100 shadow-sm gradient-income animate__animated animate__fadeInLeft">
-            <Card.Body>
-              <div className="d-flex align-items-center">
-                <ArrowUpCircle size={40} className="me-3" />
-                <div>
-                  <h6 className="text-light mb-1">Total Income</h6>
-                  <h3 className="mb-0 text-light">₹{totalIncome.toLocaleString()}</h3>
-                </div>
+        <Card className="glass-card shadow-sm bg-success text-white">
+            <Card.Body className="d-flex align-items-center">
+              <ArrowUpCircle size={30} className="me-3" />
+              <div>
+                <h6 className="mb-1">Total Income</h6>
+                <h3 className="mb-0">₹{income.toLocaleString()}</h3>
               </div>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Expenses Card */}
         <Col md={4}>
-          <Card className="h-100 shadow-sm gradient-expense animate__animated animate__fadeInUp">
-            <Card.Body>
-              <div className="d-flex align-items-center">
-                <ArrowDownCircle size={40} className="me-3" />
-                <div>
-                  <h6 className="text-light mb-1">Total Expenses</h6>
-                  <h3 className="mb-0 text-light">₹{totalExpenses.toLocaleString()}</h3>
-                </div>
+          <Card className="h-100 shadow-sm bg-danger text-white">
+            <Card.Body className="d-flex align-items-center">
+              <ArrowDownCircle size={30} className="me-3" />
+              <div>
+                <h6 className="mb-1">Total Expenses</h6>
+                <h3 className="mb-0">₹{expenses.toLocaleString()}</h3>
               </div>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Balance Card */}
         <Col md={4}>
-          <Card className="h-100 shadow-sm gradient-balance animate__animated animate__fadeInRight">
-            <Card.Body>
-              <div className="d-flex align-items-center">
-                <CurrencyRupee size={40} className="me-3" />
-                <div>
-                  <h6 className="text-light mb-1">Current Balance</h6>
-                  <h3 className="mb-0 text-light">₹{currentBalance.toLocaleString()}</h3>
-                </div>
+          <Card className="h-100 shadow-sm bg-primary text-white">
+            <Card.Body className="d-flex align-items-center">
+              <CurrencyRupee size={30} className="me-3" />
+              <div>
+                <h6 className="mb-1">Current Balance</h6>
+                <h3 className="mb-0">₹{balance.toLocaleString()}</h3>
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Line Chart */}
-      <Card className="mb-4 shadow animate__animated animate__fadeInUp">
+      {/* Chart Section */}
+      <Card className="mb-4 shadow">
         <Card.Body>
-          <h5 className="mb-4 text-secondary">Financial Trends</h5>
-          <div className="line-chart-container">
-            <Line 
-              data={lineChartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                  }
-                }
-              }}
-            />
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h5>Financial Trends</h5>
+            <Button 
+              variant="outline-primary"
+              onClick={() => setShowBreakdown(!showBreakdown)}
+              className="rounded-pill"
+            >
+              {showBreakdown ? (
+                <>
+                  <XCircle className="me-2" />
+                  Hide Breakdown
+                </>
+              ) : (
+                <>
+                  <PieIcon className="me-2" />
+                  Show Breakdown
+                </>
+              )}
+            </Button>
           </div>
+          
+          <div className="chart-container">
+            <Line data={lineChartData} options={{ responsive: true }} />
+          </div>
+
+          {showBreakdown && (
+            <Row className="g-4 mt-4">
+              <Col md={6}>
+                <Card className="h-100 shadow">
+                  <Card.Body>
+                    <h5 className="mb-4">Monthly Comparison</h5>
+                    <div className="chart-container">
+                      <Bar data={barChartData} options={{ responsive: true }} />
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              
+              <Col md={6}>
+                <Card className="h-100 shadow">
+                  <Card.Body>
+                    <h5 className="mb-4">Category Breakdown</h5>
+                    <div className="chart-container">
+                      <Pie 
+                        data={pieChartData}
+                        options={{
+                          plugins: {
+                            legend: {
+                              position: 'bottom',
+                              labels: { font: { size: 12 } }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
         </Card.Body>
       </Card>
-    
-    {chartType && (
-        <Card className="shadow animate__animated animate__fadeInUp">
-          <Card.Body>
-            <h5 className="mb-4 text-secondary">
-              {chartType === 'pie' ? 'Financial Breakdown' : 'Monthly Comparison'}
-            </h5>
-            <div className={`${chartType}-container`}>
-              {chartType === 'pie' ? (
-                <Pie 
-                  data={pieData}
-                  options={{
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                        labels: { font: { size: 12 } }
-                      }
-                    }
-                  }}
-                />
-              ) : (
-                <Bar 
-                  data={barChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { position: 'top' }
-                    },
-                    scales: {
-                      x: {
-                        grid: { display: false }
-                      },
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: value => `₹${value.toLocaleString()}`
-                        }
-                      }
-                    }
-                  }}
-                />
-              )}
-            </div>
-          </Card.Body>
-        </Card>
-      )}
     </div>
   );
-}
+};
+
+export default Dashboard;

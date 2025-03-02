@@ -1,5 +1,7 @@
 export default function AuthForm({ email, setEmail, password, setPassword, onSubmit, isLogin, children }) {
     return (
+        <div className="auth-container animate__animated animate__fadeIn">
+        <div className="auth-card animate__animated animate__slideInUp">
         <form onSubmit={onSubmit}>
         <div className="mb-3">
             <label className="form-label">Email address</label>
@@ -30,5 +32,7 @@ export default function AuthForm({ email, setEmail, password, setPassword, onSub
             {isLogin ? 'Login' : 'Continue Registration'}
         </button>
         </form>
+    </div>
+   </div>
     );
 }

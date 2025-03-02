@@ -41,7 +41,7 @@ export default function Transactions() {
         </Button>
       </div>
 
-      <Card className="shadow">
+      <Card className=" glass-card shadow">
         <Card.Body>
           <ExpenseList
             expenses={transactions}
