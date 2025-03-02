@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+// const Category = require('./Category');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -46,22 +47,26 @@ userSchema.pre('save', async function(next) {
 
 // ====== DEFAULT CATEGORIES CREATION ======
 userSchema.post('save', async function(user) {
-  const defaultCategories = [
-    { name: 'Salary', type: 'income', icon: 'md-cash', isDefault: true },
-    { name: 'Food', type: 'expense', icon: 'md-restaurant', isDefault: true },
-    { name: 'Transport', type: 'expense', icon: 'md-car', isDefault: true },
-    { name: 'Housing', type: 'expense', icon: 'md-home', isDefault: true },
-    { name: 'Utilities', type: 'expense', icon: 'md-bulb', isDefault: true },
-    { name: 'Health', type: 'expense', icon: 'md-medkit', isDefault: true }
-  ];
-
-  try{
-    await mongoose.model('Category').insertMany(defaultCategories.map(cat => ({ ...cat, user: user._id })));
-    }catch (err) {
-    console.log('Error creating default categories:', err.message);
-  }
-});
-
+    const defaultCategories = [
+      { name: 'Salary', type: 'income', icon: 'md-cash', isDefault: true },
+      { name: 'Food', type: 'expense', icon: 'md-restaurant', isDefault: true },
+      { name: 'Transport', type: 'expense', icon: 'md-car', isDefault: true },
+      { name: 'Housing', type: 'expense', icon: 'md-home', isDefault: true },
+      { name: 'Utilities', type: 'expense', icon: 'md-bulb', isDefault: true },
+      { name: 'Health', type: 'expense', icon: 'md-medkit', isDefault: true }
+    ];
+  
+    try {
+      await Category.insertMany(
+        defaultCategories.map(cat => ({ 
+          ...cat, 
+          user: user._id 
+        }))
+      );
+    } catch (err) {
+      console.log('Error creating default categories:', err.message);
+    }
+  });
 // ====== PASSWORD VERIFICATION METHOD ======
 userSchema.methods.correctPassword = async function(
   candidatePassword, 

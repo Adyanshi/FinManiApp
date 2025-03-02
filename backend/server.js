@@ -1,4 +1,6 @@
+require('./models'); 
 const express = require('express');
+const dotenv = require('dotenv');
 const authRouter = require('./routes/auth.routes');
 const connectDB = require('./config/db');
 const { PORT } = require('./config/env');
