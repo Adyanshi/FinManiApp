@@ -47,6 +47,7 @@ userSchema.pre('save', async function(next) {
 
 // ====== DEFAULT CATEGORIES CREATION ======
 userSchema.post('save', async function(user) {
+  const Category = mongoose.model('Category');
     const defaultCategories = [
       { name: 'Salary', type: 'income', icon: 'md-cash', isDefault: true },
       { name: 'Food', type: 'expense', icon: 'md-restaurant', isDefault: true },

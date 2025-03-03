@@ -1,3 +1,4 @@
+const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 const handleJWTError = () => new AppError('Invalid token!', 401);

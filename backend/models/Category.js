@@ -32,9 +32,5 @@ const categorySchema = new mongoose.Schema({
 });
 
 // Prevent duplicate categories per user
-categorySchema.index({ name: 1, user: 1 }, { unique: true });
-
-module.exports = mongoose.model('Category', categorySchema);
-
 const Category = mongoose.model('Category', categorySchema);
 module.exports = Category;

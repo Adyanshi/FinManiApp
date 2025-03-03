@@ -1,3 +1,4 @@
+const catchAsync = require('../utils/catchAsync');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AppError = require('../utils/appError');
@@ -18,7 +19,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // 2) Verify token
-  const decoded = jwt.verify(token, JWT_SECRET);
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   // 3) Check if user still exists
   const currentUser = await User.findById(decoded.id);
