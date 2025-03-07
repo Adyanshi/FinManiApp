@@ -1,74 +1,88 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Alert } from 'react-bootstrap';
 import { Envelope, Lock } from 'react-bootstrap-icons';
+import { useAuth } from '../context/AuthContext';
 
-export default function Login({onLogin}) {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+export default function Login() {
+    const { login } = useAuth();
+    const navigate = useNavigate();
     const [error, setError] = useState('');
-    // const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.email === email && u.password === password);
-    
-        if (user) {
-          onLogin(user); // Ensure onLogin is called with user data
-        } else {
-            setError('Invalid email or password');
+        setLoading(true);
+        setError('');
+        
+        const formData = new FormData(e.target);
+        const credentials = {
+            email: formData.get('email'),
+            password: formData.get('password')
+        };
+
+        try {
+            await login(credentials);
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.message || 'Login failed. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="auth-page">
             <div className="auth-card">
-            <div className="auth-header">
-                <h2 className="mb-3">Welcome Back! 👋</h2>
-                <p className="text-muted">Please sign in to continue</p>
-            </div>
-            
-            <div className="card-body p-4 pt-0">
-                {error && <Alert variant="danger" className="animated fadeIn">{error}</Alert>}
+                <div className="auth-header">
+                    <h2 className="mb-3">Welcome Back! 👋</h2>
+                    <p className="text-muted">Please sign in to continue</p>
+                </div>
+                
+                <div className="card-body p-4 pt-0">
+                    {error && <Alert variant="danger" className="animated fadeIn">{error}</Alert>}
 
-                <form onSubmit={handleSubmit}>
-                <div className="mb-4 position-relative">
-                    <Envelope className="input-group-icon" />
-                    <input
-                    type="email"
-                    className="form-control ps-5"
-                    placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    />
+                    <form onSubmit={handleSubmit}>
+                        <div className="mb-4 position-relative">
+                            <Envelope className="input-group-icon" />
+                            <input
+                                type="email"
+                                className="form-control ps-5"
+                                placeholder="Email Address"
+                                name="email"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+        
+                        <div className="mb-4 position-relative">
+                            <Lock className="input-group-icon" />
+                            <input
+                                type="password"
+                                className="form-control ps-5"
+                                placeholder="Password"
+                                name="password"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+        
+                        <button 
+                            type="submit" 
+                            className="btn-auth mb-4"
+                            disabled={loading}
+                        >
+                            {loading ? 'Signing In...' : 'Sign In'}
+                        </button>
+        
+                        <div className="text-center">
+                            <span className="text-muted">New user? </span>
+                            <Link to="/register" className="auth-link">
+                                Create an account
+                            </Link>
+                        </div>
+                    </form>
                 </div>
-    
-                <div className="mb-4 position-relative">
-                    <Lock className="input-group-icon" />
-                    <input
-                    type="password"
-                    className="form-control ps-5"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    />
-                </div>
-    
-                <button type="submit" className="btn-auth mb-4">
-                    Sign In
-                </button>
-    
-                <div className="text-center">
-                    <span className="text-muted">New user? </span>
-                    <Link to="/register" className="auth-link">
-                    Create an account
-                    </Link>
-                </div>
-                </form>
-            </div>
             </div>
         </div>
     );

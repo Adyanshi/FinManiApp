@@ -9,6 +9,8 @@ import {
   HeartPulse,
   Cash
 } from 'react-bootstrap-icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteTransaction } from '../api/transactions';
 
 const CategoryIcon = ({ category }) => {
   const iconStyle = { width: '20px', marginRight: '8px' };
@@ -33,7 +35,21 @@ const CategoryIcon = ({ category }) => {
   }
 };
 
-export default function ExpenseList({ expenses, onEdit, onDelete }) {
+export default function ExpenseList({ expenses, onEdit }) {
+  const queryClient = useQueryClient();
+  
+  const mutation = useMutation({
+    mutationFn: deleteTransaction,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['transactions']);
+    }
+  });
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this transaction?')) {
+      mutation.mutate(id);
+    }
+  };
   return (
     <div className="table-responsive">
       <table className="table table-hover align-middle glass-table">
@@ -70,16 +86,22 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
                 </button>
                 <button
                   className="btn btn-sm btn-outline-danger"
-                  onClick={() => onDelete(expense.id)}
+                  onClick={() => handleDelete(expense._id)}
                   aria-label="Delete"
+                  disabled={mutation.isLoading}
                 >
-                  <Trash />
+                  {mutation.isLoading ? <Spinner size="sm" /> : <Trash />}
                 </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      {mutation.isError && (
+        <div className="alert alert-danger mt-3">
+          {mutation.error.response?.data?.message || 'Failed to delete transaction'}
+        </div>
+      )}
     </div>
   );
 }

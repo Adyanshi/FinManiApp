@@ -19,10 +19,12 @@ const budgetSchema = new mongoose.Schema({
   categories: [{
     category: {
       type: mongoose.Schema.ObjectId,
-      ref: 'Category'
+      ref: 'Category',
+      required: true
     },
     allocated: {
       type: Number,
+      required: true,
       min: [0, 'Allocated amount cannot be negative']
     }
   }]
