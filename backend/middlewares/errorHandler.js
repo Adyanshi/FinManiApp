@@ -1,21 +1,26 @@
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+const sendErrorDev = (err, res) => {
+  res.status(err.statusCode).json({
+    status: err.status,
+    error: err,
+    message: err.message,
+    stack: err.stack
+  });
+};
 
-const handleJWTError = () => new AppError('Invalid token!', 401);
-const handleJWTExpiredError = () => new AppError('Token expired!', 401);
+const sendErrorProd = (err, res) => {
+  res.status(err.statusCode).json({
+    status: err.status,
+    message: err.message
+  });
+};
 
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  let error = { ...err };
-  error.message = err.message;
-
-  if (error.name === 'JsonWebTokenError') error = handleJWTError();
-  if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
-
-  res.status(error.statusCode).json({
-    status: error.status,
-    message: error.message
-  });
+  if (process.env.NODE_ENV === 'development') {
+    sendErrorDev(err, res);
+  } else {
+    sendErrorProd(err, res);
+  }
 };

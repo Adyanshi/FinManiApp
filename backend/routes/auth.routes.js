@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const { protect } = require('../middlewares/auth');
 const { check } = require('express-validator');
 
 router.post(
-  '/signup',
+  '/auth/signup',
   [
     check('name').not().isEmpty().withMessage('Name is required'),
     check('email').isEmail().withMessage('Valid email required'),
@@ -14,12 +15,18 @@ router.post(
 );
 
 router.post(
-  '/login',
+  '/auth/login',
   [
     check('email').isEmail().withMessage('Valid email required'),
     check('password').exists().withMessage('Password required')
   ],
   authController.login
+);
+
+router.get(
+  '/auth/me',
+  protect,
+  authController.getMe
 );
 
 module.exports = router;

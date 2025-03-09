@@ -10,6 +10,7 @@ import BudgetSetup from './pages/BudgetSetup';
 import Transactions from './pages/Transactions';
 import Income from './pages/Income';
 import Expenses from './pages/Expenses';
+import { useAuth } from './context/AuthContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

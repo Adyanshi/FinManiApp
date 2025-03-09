@@ -1,20 +1,36 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
+const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
-const signToken = (id, secret, expiresIn) => {
-  return jwt.sign({ id }, secret, { expiresIn });
+const signToken = id => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN
+  });
 };
 
-
 exports.signup = catchAsync(async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      status: 'fail',
+      message: errors.array().map(err => err.msg).join(', ')
+    });
+  }
+
+  const { name, email, password } = req.body;
+
+  // Check for existing user
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return next(new AppError('Email already exists', 400));
+  }
+
   const newUser = await User.create({
-    name: req.body.name,
-    email: req.body.email,
-    password: req.body.password,
-    currency: req.body.currency || '₹'
+    name,
+    email,
+    password
   });
 
   const token = signToken(newUser._id);
@@ -24,10 +40,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     token,
     data: {
       user: {
-        _id: newUser._id,
+        id: newUser._id,
         name: newUser.name,
-        email: newUser.email,
-        currency: newUser.currency
+        email: newUser.email
       }
     }
   });
@@ -36,75 +51,46 @@ exports.signup = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  // 1) Check if email and password exist
+  // 1. Check for empty fields
   if (!email || !password) {
-    return next(new AppError('Please provide email and password!', 400));
+    return next(new AppError('Please provide email and password', 400));
   }
 
-  // 2) Check if user exists && password is correct
+  // 2. Find user with password
   const user = await User.findOne({ email }).select('+password');
-
+  
+  // 3. Verify credentials
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
 
-  // 3) Generate JWT tokens
-  const accessToken = signToken(
-    user._id,
-    process.env.JWT_ACCESS_SECRET,
-    process.env.JWT_ACCESS_EXPIRES
-  );
+  // 4. Generate token
+  const token = signToken(user._id);
 
-  const refreshToken = signToken(
-    user._id,
-    process.env.JWT_REFRESH_SECRET,
-    process.env.JWT_REFRESH_EXPIRES
-  );
-
-  // 4) Set secure cookies
-  res.cookie('jwt', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
-
+  // 5. Send response
   res.status(200).json({
     status: 'success',
-    accessToken,
+    token,
     data: {
       user: {
-        _id: user._id,
+        id: user._id,
         name: user.name,
-        email: user.email,
-        currency: user.currency
+        email: user.email
       }
     }
   });
 });
-
-exports.refreshToken = catchAsync(async (req, res, next) => {
-  const refreshToken = req.cookies.jwt;
-
-  if (!refreshToken) {
-    return next(new AppError('Authentication required', 401));
-  }
-
-  const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-  const user = await User.findById(decoded.id);
-
+exports.getMe = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select('-password');
+  
   if (!user) {
-    return next(new AppError('User no longer exists', 401));
+    return next(new AppError('User not found', 404));
   }
-
-  const newAccessToken = signToken(
-    user._id,
-    process.env.JWT_ACCESS_SECRET,
-    process.env.JWT_ACCESS_EXPIRES
-  );
 
   res.status(200).json({
     status: 'success',
-    accessToken: newAccessToken
+    data: {
+      user
+    }
   });
 });

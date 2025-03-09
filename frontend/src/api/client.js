@@ -1,19 +1,23 @@
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
+// Request interceptor for JWT token
 apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// Response interceptor for token refresh
 apiClient.interceptors.response.use(
   response => response,
   async error => {
@@ -23,17 +27,15 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-        
-        localStorage.setItem('accessToken', data.accessToken);
+        // Attempt to refresh tokens
+        const { data } = await apiClient.post('/auth/refresh');
+        localStorage.setItem('token', data.accessToken);
         return apiClient(originalRequest);
-      } catch (err) {
-        localStorage.removeItem('accessToken');
+      } catch (refreshError) {
+        // If refresh fails, clear storage and redirect
+        localStorage.removeItem('token');
         window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
     

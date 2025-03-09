@@ -9,40 +9,56 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data } = await apiClient.get('/auth/me');
         setUser(data.user);
       } catch (err) {
+        localStorage.removeItem('token');
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
+
     checkAuth();
   }, []);
 
   const login = async (credentials) => {
-    const { data } = await apiClient.post('/auth/login', credentials);
-    localStorage.setItem('token', data.token);
-    setUser(data.user);
+    try {
+      const { data } = await apiClient.post('/auth/login', credentials);
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Login failed');
+    }
   };
 
   const register = async (userData) => {
-    const { data } = await apiClient.post('/auth/register', userData);
-    localStorage.setItem('token', data.token);
-    setUser(data.user);
+    try {
+      const { data } = await apiClient.post('/auth/signup', userData);
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Registration failed');
+    }
   };
 
-  const logout = async () => {
-    await apiClient.post('/auth/logout');
+  const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
   };
 
-  const value = { user, loading, login, register, logout };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );

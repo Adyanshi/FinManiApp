@@ -24,11 +24,11 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
-  currency: {
-    type: String,
-    default: '₹',
-    enum: ['₹', '$', '€', '£']
-  },
+  // currency: {
+  //   type: String,
+  //   default: '₹',
+  //   enum: ['₹', '$', '€', '£']
+  // },
   createdAt: {
     type: Date,
     default: Date.now
