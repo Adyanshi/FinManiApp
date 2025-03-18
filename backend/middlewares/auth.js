@@ -13,7 +13,9 @@ const verifyToken = (token, secret) => {
 };
 
 const protect = catchAsync(async (req, res, next) => {
+  console.log('Authorization header:', req.headers.authorization); // Log the authorization header
   // 1. Get token from headers
+
   let token;
   if (
     req.headers.authorization &&
@@ -28,7 +30,11 @@ const protect = catchAsync(async (req, res, next) => {
   }
 
   // 3. Verify token validity
-  const decoded = await verifyToken(token, process.env.JWT_ACCESS_SECRET);
+  const decoded = await verifyToken(token, process.env.JWT_ACCESS_SECRET).catch(err => {
+    console.error('Token verification failed:', err); // Log token verification error
+    return next(new AppError('Not authorized', 401));
+  });
+
 
   // 4. Check if user still exists
   const currentUser = await User.findById(decoded.id);

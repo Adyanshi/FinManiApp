@@ -13,8 +13,8 @@ import Expenses from './pages/Expenses';
 import { useAuth } from './context/AuthContext';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, loading, login, register, logout } = useAuth();
+  const isAuthenticated = !!user;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,18 +25,13 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (userData) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('isAuthenticated', 'true');
-    setUser(userData);
-    setIsAuthenticated(true);
+  const handleLogin = async (userData) => {
+    await login(userData);
     navigate(userData.budget ? '/' : '/set-budget');
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    setUser(null);
-    setIsAuthenticated(false);
+    logout();
     navigate('/login');
   };
 

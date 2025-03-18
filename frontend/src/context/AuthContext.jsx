@@ -32,9 +32,12 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     try {
-      const { data } = await apiClient.post('/auth/login', credentials);
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      const response = await apiClient.post('/auth/login', credentials);
+      console.log('Login Response:', JSON.stringify(response, null, 2)); // Log the entire response object in detail
+      const { data } = response; // Destructure data from the response
+
+      localStorage.setItem('token', data.data.token); // Access token from nested data
+      setUser(data.data.user); // Access user from nested data
       return true;
     } catch (err) {
       throw new Error(err.response?.data?.message || 'Login failed');

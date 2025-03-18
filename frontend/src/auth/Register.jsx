@@ -3,33 +3,36 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Alert } from 'react-bootstrap';
 import { Person, Envelope, Lock } from 'react-bootstrap-icons';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../api/client'; // Ensure apiClient is imported
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, setUser } = useAuth(); // Correctly destructured
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await apiClient.post('/auth/signup', { // Fixed syntax
+        name,
+        email,
+        password
+      });
+      console.log('Registration Response:', response.data); // Log the response
+      console.log('User State After Registration:', response.data.user); // Log the user state
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const response = await apiClient.post('/auth/signup', {
-      name,
-      email,
-      password
-    });
-    console.log('Registration Response:', response.data); // Log the response
-    localStorage.setItem('token', response.data.accessToken); // Store access token
-    setUser(response.data.user); // Update user state
-    navigate('/dashboard'); // Redirect to dashboard
-  } catch (err) {
-    console.error('Registration Error:', err.response?.data); // Log the error
-    setError(err.response?.data?.message || 'Registration failed');
-  }
-};
+      localStorage.setItem('token', response.data.token); // Store access token
+      setUser(response.data.user); // Update user state
+      navigate('/dashboard'); // Redirect to dashboard
+    } catch (err) {
+      console.error('Registration Error:', err.response?.data || err.message); // Log the error
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    }
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-card">

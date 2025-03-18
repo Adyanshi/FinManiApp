@@ -26,15 +26,17 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [showBreakdown, setShowBreakdown] = useState(false);
     
-    const { data: monthlyData, isLoading: monthlyLoading } = useQuery(
-        ['analytics', 'monthly'],
-        getMonthlySummary
-    );
+    const { data: monthlyData, isLoading: monthlyLoading } = useQuery({
+        queryKey: ['analytics', 'monthly'],
+        queryFn: getMonthlySummary
+    });
 
-    const { data: categoryData, isLoading: categoryLoading } = useQuery(
-        ['analytics', 'category'],
-        getCategorySpending
-    );
+
+    const { data: categoryData, isLoading: categoryLoading } = useQuery({
+        queryKey: ['analytics', 'category'],
+        queryFn: getCategorySpending
+    });
+
 
     // Process data for charts
     const lineChartData = {
